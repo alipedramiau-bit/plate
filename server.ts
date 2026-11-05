@@ -66,6 +66,14 @@ const upload = multer({
 // مسیر فایل پایگاه داده
 const DB_PATH = path.resolve(__dirname, 'data/plates.db');
 
+// مسیر ماژول‌های پردازش تصویر پایتون در فولدر backend
+const ANPR_SCRIPT = fs.existsSync(path.join(__dirname, 'backend/anpr_system.py'))
+  ? 'backend/anpr_system.py'
+  : 'anpr_system.py';
+const TEST_SCRIPT = fs.existsSync(path.join(__dirname, 'backend/test_anpr.py'))
+  ? 'backend/test_anpr.py'
+  : 'test_anpr.py';
+
 // Helper to query SQLite via python script or sqlite3 CLI
 function queryDb(sql: string, params: any[] = []): Promise<any> {
   return new Promise((resolve, reject) => {
@@ -136,7 +144,7 @@ app.post('/api/upload-video', upload.single('video'), (req: any, res: any) => {
   console.log(`[Upload] ویدیوی جدید دریافت شد: ${filename} (${req.file.size} bytes)`);
 
   // اجرای اسکریپت پایتون روی فایل آپلود شده
-  const command = `python3 anpr_system.py --video "${relativePath}" --db data/plates.db`;
+  const command = `python3 ${ANPR_SCRIPT} --video "${relativePath}" --db data/plates.db`;
   exec(command, { cwd: __dirname }, async (err, stdout, stderr) => {
     if (err) {
       console.error('خطا در پردازش ویدیوی آپلود شده:', stderr);
@@ -195,7 +203,7 @@ app.post('/api/analyze-live-stream', (req: any, res: any) => {
 
   const safeName = streamName || 'دوربین پخش زنده';
   const currentSec = parseFloat(currentTime || sec || '0') || 0;
-  const command = `python3 anpr_system.py --stream "${streamUrl.replace(/"/g, '\\"')}" --stream-name "${safeName.replace(/"/g, '\\"')}" --sec ${currentSec.toFixed(1)} --db data/plates.db`;
+  const command = `python3 ${ANPR_SCRIPT} --stream "${streamUrl.replace(/"/g, '\\"')}" --stream-name "${safeName.replace(/"/g, '\\"')}" --sec ${currentSec.toFixed(1)} --db data/plates.db`;
 
   exec(command, { cwd: __dirname }, async (err, stdout, stderr) => {
     if (err) {
@@ -408,8 +416,8 @@ app.get('/api/export-csv', async (req, res) => {
 // 13. خواندن کدهای پایتون برای نمایش در تب سورس
 app.get('/api/source-code', (req, res) => {
   try {
-    const anprCode = fs.readFileSync(path.join(__dirname, 'anpr_system.py'), 'utf-8');
-    const testCode = fs.readFileSync(path.join(__dirname, 'test_anpr.py'), 'utf-8');
+    const anprCode = fs.readFileSync(path.join(__dirname, ANPR_SCRIPT), 'utf-8');
+    const testCode = fs.readFileSync(path.join(__dirname, TEST_SCRIPT), 'utf-8');
     res.json({ anprCode, testCode });
   } catch (e: any) {
     res.status(500).json({ error: e.message });

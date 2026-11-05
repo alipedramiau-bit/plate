@@ -32,7 +32,7 @@ graph TD
 
 When automated agents or sub-agents operate on this codebase, adhere to the following domain separation:
 
-### 1. Vision & ANPR Agent (`anpr_system.py`)
+### 1. Vision & ANPR Agent (`backend/anpr_system.py`, `anpr_system.py`)
 - **Primary Responsibility:** Pixel-level computer vision, image enhancements, contour detection, and character recognition.
 - **Key Constraints:**
   - Standard Iranian plate aspect ratio is $4.56$ ($520\text{ mm} \times 114\text{ mm}$). Valid range for candidate contours is $2.0 \le \frac{w}{h} \le 5.8$.
@@ -53,7 +53,7 @@ When automated agents or sub-agents operate on this codebase, adhere to the foll
   - Upon detecting an existing plate, increment `detection_count`, update `last_seen`, and retain the highest confidence score and cleanest crop image.
   - Foreign keys in `detection_logs` must reference `detected_plates(id)`.
 
-### 4. Frontend & HUD Agent (`src/App.tsx`, `src/components/`)
+### 4. Frontend & HUD Agent (`frontend/src/App.tsx`, `frontend/src/components/`, `src/`)
 - **Primary Responsibility:** Real-time user experience, Persian typography (Vazirmatn), responsive layout, and interactive AI targeting overlays.
 - **Key Constraints:**
   - Overlay bounding boxes are normalized to percentage coordinates (`box_pct: { left, top, width, height }`) to ensure perfect responsiveness across any screen resolution.

@@ -119,33 +119,45 @@ python3 test_anpr.py
 
 ---
 
-## 📁 ساختار پوشه‌ها و فایل‌های پروژه
+## 📁 ساختار پوشه‌ها و فایل‌های پروژه (Monorepo)
 
 ```text
+├── frontend/                # کلیه کدها و پیکربندی بخش فرانت‌اند React Vite
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── BottomPlateTicker.tsx  # نوار وضعیت متحرک پلاک‌های کشف شده در پایین صفحه
+│   │   │   ├── PersianPlate.tsx       # رندر گرافیکی واقعی پلاک ملی ایران
+│   │   │   ├── PlateTable.tsx         # جدول تعاملی مرورگر داده‌ها با خروجی CSV/JSON
+│   │   │   ├── VideoUploader.tsx      # کامپوننت آپلود و پردازش ویدیو
+│   │   │   ├── LiveStreamAnalyzer.tsx # ماژول دوربین‌های زنده و پایش خودکار
+│   │   │   └── PythonCodeViewer.tsx   # نمایشگر کد و رانر ترمینال پایتون
+│   │   ├── App.tsx          # رابط کاربری اصلی و کنترل تب‌ها
+│   │   ├── index.css        # استایل‌های Tailwind CSS 4 و فونت Vazirmatn
+│   │   └── main.tsx         # مدخل React
+│   ├── index.html           # سند HTML با متاتگ‌های سئو
+│   ├── package.json         # وابستگی‌ها و اسکریپت‌های مستقل فرانت‌اند
+│   ├── tsconfig.json        # تنظیمات TypeScript فرانت‌اند
+│   ├── vite.config.ts       # تنظیمات Vite با پروکسی به پورت 3000
+│   └── README.md            # مستندات مستقل فرانت‌اند
+│
+├── backend/                 # کلیه کدها، سرویس‌ها و الگوریتم‌های پردازش تصویر پایتون
+│   ├── anpr_system.py       # موتور اصلی بینایی ماشین، OpenCV، OCR و دیتابیس SQLite
+│   ├── test_anpr.py         # آزمون خودکار صحت عملکرد الگوریتم و دیتابیس
+│   ├── main.py              # وب‌سرویس مدرن FastAPI با مستندات Swagger در /docs
+│   ├── requirements.txt     # پکیج‌های پایتون (OpenCV, Tesseract, Pillow, FastAPI)
+│   └── README.md            # مستندات فنی بخش بک‌اند
+│
 ├── AGENTS.md                # مستندات و راهنمای راهبردی هوش مصنوعی و توسعه‌دهندگان
 ├── AGENTS.me                # نسخه سازگار فایل راهنمای ایجنت‌ها
-├── README.md                # مستندات جامع پروژه
-├── anpr_system.py           # موتور اصلی بینایی ماشین، OpenCV، OCR و SQLite
-├── test_anpr.py             # آزمون خودکار صحت عملکرد الگوریتم و دیتابیس
-├── requirements.txt         # پکیج‌های پایتون (OpenCV, Tesseract, Pillow, ...)
-├── server.ts                # سرور Express و مدیریت روت‌های API و استریم
+├── server.ts                # سرور Express یکپارچه‌ساز و مدیریت روت‌های API و استریم
 ├── data/
-│   └── plates.db            # دیتابیس رابطه‌ای SQLite
+│   └── plates.db            # پایگاه داده رابطه‌ای SQLite با رکوردهای پلاک‌ها
 ├── public/
-│   ├── assets/              # کلیپ‌های ویدیویی نظارتی
+│   ├── assets/              # کلیپ‌های ویدیویی نظارتی تست
 │   ├── crops/               # تصاویر باکیفیت برش‌خورده از پلاک خودروها
 │   ├── frames/              # فریم‌های استخراج شده کلیدی ویدیو
 │   └── streams/             # فریم‌های شکار شده از دوربین‌های زنده
-├── src/
-│   ├── components/
-│   │   ├── PersianPlate.tsx       # رندر گرافیکی واقعی پلاک ملی ایران
-│   │   ├── PlateTable.tsx         # جدول تعاملی مرورگر داده‌های SQLite
-│   │   ├── VideoUploader.tsx      # کامپوننت آپلود و پردازش ویدیو
-│   │   ├── LiveStreamAnalyzer.tsx # ماژول دوربین‌های زنده و پایش خودکار
-│   │   └── PythonCodeViewer.tsx   # نمایشگر کد و رانر ترمینال پایتون
-│   ├── App.tsx              # برنامه اصلی و تب‌های سیستم
-│   └── index.css            # استایل‌های Tailwind CSS
-└── package.json             # وابستگی‌های فرانت‌اند
+└── package.json             # اسکریپت‌های سطح ریشه برای اجرای سراسری و دیپلوی
 ```
 
 ---

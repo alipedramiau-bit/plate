@@ -1,6 +1,4 @@
-# Iranian ANPR System — Agent & Architecture Specification (`AGENTS.me`)
-
-> Note: This file is identical to `AGENTS.md` provided for compatibility.
+# Iranian ANPR System — Agent & Architecture Specification (`AGENTS.md`)
 
 Welcome to the **Iranian Automated Number Plate Recognition (ANPR)** development & agent guidebook. This document serves as the authoritative blueprint for AI agents, automated development pipelines, and human engineers maintaining or extending this repository.
 
@@ -34,7 +32,7 @@ graph TD
 
 When automated agents or sub-agents operate on this codebase, adhere to the following domain separation:
 
-### 1. Vision & ANPR Agent (`anpr_system.py`)
+### 1. Vision & ANPR Agent (`backend/anpr_system.py`, `anpr_system.py`)
 - **Primary Responsibility:** Pixel-level computer vision, image enhancements, contour detection, and character recognition.
 - **Key Constraints:**
   - Standard Iranian plate aspect ratio is $4.56$ ($520\text{ mm} \times 114\text{ mm}$). Valid range for candidate contours is $2.0 \le \frac{w}{h} \le 5.8$.
@@ -55,7 +53,7 @@ When automated agents or sub-agents operate on this codebase, adhere to the foll
   - Upon detecting an existing plate, increment `detection_count`, update `last_seen`, and retain the highest confidence score and cleanest crop image.
   - Foreign keys in `detection_logs` must reference `detected_plates(id)`.
 
-### 4. Frontend & HUD Agent (`src/App.tsx`, `src/components/`)
+### 4. Frontend & HUD Agent (`frontend/src/App.tsx`, `frontend/src/components/`, `src/`)
 - **Primary Responsibility:** Real-time user experience, Persian typography (Vazirmatn), responsive layout, and interactive AI targeting overlays.
 - **Key Constraints:**
   - Overlay bounding boxes are normalized to percentage coordinates (`box_pct: { left, top, width, height }`) to ensure perfect responsiveness across any screen resolution.
@@ -107,6 +105,38 @@ npm run build
 # Test single live stream frame at 26.0s
 python3 anpr_system.py --stream "/assets/aistudio/VID_20261029_183130_849_4af72e51.mp4" --sec 26.0 --db data/plates.db
 ```
+
+---
+
+## 5. Coding Standards & Conventions
+
+1. **Persian String Normalization:**
+   Always use `normalize_persian_letter()` and `to_persian_digits()` / `to_english_digits()` when persisting or querying plate numbers.
+   - Arabic `ي` $\rightarrow$ Persian `ی`
+   - Arabic `ك` $\rightarrow$ Persian `ک`
+2. **Error Handling:**
+   - Always wrap file and camera I/O in defensive `try/except` blocks.
+   - If OpenCV fails to decode an exotic stream codec, gracefully fall back to the FFmpeg sub-pipe.
+3. **No Mocks in Production:**
+   Never use random number generators (`hashlib.md5`, `random.choice`) in place of real computer vision logic.
+4. **Git Discipline:**
+   - Commit messages must follow conventional commits: `feat(...)`, `fix(...)`, `docs(...)`, `refactor(...)`.
+   - Maintain clean working trees without committing bulky raw video files ($>50\text{MB}$) or `__pycache__`.
+
+---
+
+## 6. Iranian License Plate Format Reference
+
+Standard format follows:
+$$\underbrace{\text{۲ رقم}}_{\text{Part 1}} \quad \underbrace{\text{حرف فارسی}}_{\text{Series Letter}} \quad \underbrace{\text{۳ رقم}}_{\text{Part 2}} \quad - \quad \underbrace{\text{ایران [۲ رقم]}}_{\text{Province Code}}$$
+
+Example:
+- `۱۴ ه ۲۵۹ - ایران ۲۰` $\rightarrow$ `Part 1: 14`, `Letter: ه`, `Part 2: 259`, `Province: 20 (اصفهان)`
+- `۸۲ ه ۳۳۷ - ایران ۱۰` $\rightarrow$ `Part 1: 82`, `Letter: ه`, `Part 2: 337`, `Province: 10 (تهران پایتخت)`
+- `۷۱ ص ۴۴۷ - ایران ۴۴` $\rightarrow$ `Part 1: 71`, `Letter: ص`, `Part 2: 447`, `Province: 44 (تهران شمال)`
+- `۵۱ ل ۹۵۵ - ایران ۲۰` $\rightarrow$ `Part 1: 51`, `Letter: ل`, `Part 2: 955`, `Province: 20 (اصفهان)`
+- `۸۷ ج ۷۶۸ - ایران ۵۵` $\rightarrow$ `Part 1: 87`, `Letter: ج`, `Part 2: 768`, `Province: 55 (گیلان رشت)`
+- `۱۴۴ / ۱۵۶۴۹` $\rightarrow$ Motorcycle plate format (Line 1: 3 digits, Line 2: 5 digits).
 
 ---
 
