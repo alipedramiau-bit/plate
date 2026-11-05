@@ -1,0 +1,6 @@
+{
+  "name": "تشخیص پلاک خودرو و پایگاه داده",
+  "description": "سیستم هوشمند تشخیص پلاک خودروهای ایرانی از روی ویدیو و ثبت خودکار در پایگاه داده SQLite با اسکریپت پایتون و نمایش زنده نتایج",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
