@@ -22,7 +22,7 @@
 ## ⚡ وب‌سرویس FastAPI (`main.py`)
 
 سرویس RESTful پایتون با قابلیت‌های زیر:
-- **مستندات اسواگر خودکار:** در مسیر `http://localhost:8000/docs` یا `http://localhost:8000/redoc`.
+- **مستندات اسواگر خودکار:** در مسیر `http://localhost:8002/docs` یا `http://localhost:8002/redoc`.
 - **مسیر `/api/plates`:** دریافت فهرست پلاک‌های ذخیره شده.
 - **مسیر `/api/upload-video`:** آپلود فایل ویدیویی و پردازش آنی.
 - **مسیر `/api/analyze-live-stream`:** دریافت آدرس استریم زنده اینترنتی و اسکن در ثانیه مشخص.
@@ -57,8 +57,10 @@ pip install -r backend/requirements.txt
 # اجرای مستقیم پردازش یک استریم یا ویدیو از طریق ترمینال:
 python3 backend/anpr_system.py --stream "/assets/aistudio/VID_20261029_183130_849_4af72e51.mp4" --sec 26.0 --db data/plates.db
 
-# اجرای وب‌سرویس FastAPI روی پورت 8000:
-uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+# اجرای وب‌سرویس FastAPI روی پورت اختصاصی 8002:
+python3 backend/main.py
+# یا با uvicorn:
+uvicorn backend.main:app --host 0.0.0.0 --port 8002 --reload
 ```
 
 ---

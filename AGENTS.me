@@ -70,8 +70,8 @@ When automated agents or sub-agents operate on this codebase, adhere to the foll
 | **Numerical** | NumPy | 1.24+ | Array manipulation, color masking, histogram math |
 | **OCR Engine** | Tesseract OCR | 5.3+ (`fas` + `eng`) | Persian and numerical optical character recognition |
 | **OCR Bridge** | PyTesseract | 0.3.10+ | Python-Tesseract binding |
-| **Web Server** | FastAPI & Express | 0.110+ / 4.19+ | RESTful APIs, Swagger docs, static file streaming |
-| **Frontend** | React + Vite | 18.3+ / 5.2+ | UI components, video canvas, terminal viewer |
+| **Web Server** | FastAPI (Port 8002) & Express (Port 3000) | 0.92+ / 4.21+ | RESTful APIs, Swagger docs (/docs), static streaming |
+| **Frontend** | React + Vite (Port 5002) | 19.0+ / 8.3+ | UI components, video canvas, terminal viewer |
 | **Styling** | Tailwind CSS | 4.0+ | Modern glassmorphism & responsive RTL UI |
 | **Database** | SQLite 3 | 3.40+ | Local ACID storage (`data/plates.db`) |
 

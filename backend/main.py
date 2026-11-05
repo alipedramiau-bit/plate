@@ -281,9 +281,16 @@ def export_csv():
 @app.get("/api/source-code")
 def get_source_code():
     try:
-        with open(os.path.join(BASE_DIR, "anpr_system.py"), "r", encoding="utf-8") as f:
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        anpr_p = os.path.join(current_dir, "anpr_system.py")
+        if not os.path.exists(anpr_p):
+            anpr_p = os.path.join(BASE_DIR, "anpr_system.py")
+        test_p = os.path.join(current_dir, "test_anpr.py")
+        if not os.path.exists(test_p):
+            test_p = os.path.join(BASE_DIR, "test_anpr.py")
+        with open(anpr_p, "r", encoding="utf-8") as f:
             anpr_code = f.read()
-        with open(os.path.join(BASE_DIR, "test_anpr.py"), "r", encoding="utf-8") as f:
+        with open(test_p, "r", encoding="utf-8") as f:
             test_code = f.read()
         return {"anprCode": anpr_code, "testCode": test_code}
     except Exception as e:
@@ -299,4 +306,8 @@ if os.path.exists(os.path.join(PUBLIC_DIR, "assets")):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.environ.get("FASTAPI_PORT", 8002))
+    print(f"🚀 اجرای وب‌سرویس FastAPI پلاک‌خوان ایرانی روی پورت {port} (مستندات: http://localhost:{port}/docs)")
+    app_module = "main:app" if os.path.exists("main.py") else "backend.main:app"
+    uvicorn.run(app_module, host="0.0.0.0", port=port, reload=True)
+

@@ -79,12 +79,23 @@ pip install -r requirements.txt
 npm install
 ```
 
-### ۴. اجرای برنامه
+### ۴. اجرای برنامه و پورت‌های شبکه
+
 ```bash
-# اجرای هم‌زمان فرانت‌اند React و سرور با هم
+# ۱. اجرای اختصاصی وب‌سرویس بک‌اند FastAPI روی پورت 8002:
+npm run dev:backend
+# یا: python3 backend/main.py
+# مستندات اسواگر API: http://localhost:8002/docs
+
+# ۲. اجرای اختصاصی فرانت‌اند Vite روی پورت 5002 (با اتصال خودکار به بک‌اند 8002):
+npm run dev:frontend
+# یا: cd frontend && npm run dev
+# آدرس دسترسی در مرورگر: http://localhost:5002
+
+# ۳. اجرای یکپارچه سرور فول‌استک (Express + Vite) روی پورت 3000:
 npm run dev
+# آدرس دسترسی: http://localhost:3000
 ```
-برنامه در آدرس پیش‌فرض `http://localhost:3000` در دسترس خواهد بود.
 
 ---
 
