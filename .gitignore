@@ -11,3 +11,4 @@ __pycache__/
 *$py.class
 .aistudio/
 data/test_*.db
+public/frames/tmp_ext_*.jpg

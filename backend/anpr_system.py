@@ -166,7 +166,7 @@ class PlateDetectorCV:
         self.crops_dir = crops_dir
         os.makedirs(self.crops_dir, exist_ok=True)
 
-    def detect_plate_candidates(self, img_bgr: np.ndarray) -> List[Dict[str, Any]]:
+    def detect_plate_candidates(self, img_bgr: Any) -> List[Dict[str, Any]]:
         """
         شناسایی نواحی کاندیدای پلاک در تصویر با فیلترهای مورفولوژی و کانتور
         """

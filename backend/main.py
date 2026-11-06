@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 """
 بک‌اند تخصصی FastAPI برای سیستم هوشمند تشخیص پلاک خودروهای ایرانی (Iranian ANPR FastAPI Backend)
+دستور اجرا در ترمینال:
+uvicorn backend.main:app --host 0.0.0.0 --port 8002 --reload
+
 این ماژول کلیه APIها را بر بستر فریم‌ورک مدرن و پرسرعت FastAPI پیاده‌سازی می‌کند:
 - آپلود و پردازش ویدیو
 - تحلیل زنده استریم‌های اینترنتی (HLS / RTSP / HTTP)
@@ -304,10 +307,16 @@ app.mount("/streams", StaticFiles(directory=STREAMS_DIR), name="streams")
 if os.path.exists(os.path.join(PUBLIC_DIR, "assets")):
     app.mount("/assets", StaticFiles(directory=os.path.join(PUBLIC_DIR, "assets")), name="assets")
 
+# دستور اجرای سرور:
+# uvicorn backend.main:app --host 0.0.0.0 --port 8002 --reload
+
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.environ.get("FASTAPI_PORT", 8002))
-    print(f"🚀 اجرای وب‌سرویس FastAPI پلاک‌خوان ایرانی روی پورت {port} (مستندات: http://localhost:{port}/docs)")
-    app_module = "main:app" if os.path.exists("main.py") else "backend.main:app"
-    uvicorn.run(app_module, host="0.0.0.0", port=port, reload=True)
+    # uvicorn backend.main:app --host 0.0.0.0 --port 8002 --reload
+    print("🚀 دستور اجرا: uvicorn backend.main:app --host 0.0.0.0 --port 8002 --reload")
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if base_dir not in sys.path:
+        sys.path.insert(0, base_dir)
+    uvicorn.run("backend.main:app", host="0.0.0.0", port=8002, reload=True)
+
 
