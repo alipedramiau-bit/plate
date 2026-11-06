@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Database,
   Play,
@@ -30,17 +30,19 @@ import {
 } from 'lucide-react';
 import { PersianPlate, toPersianDigits } from './components/PersianPlate.tsx';
 import { PlateTable, PlateRecord } from './components/PlateTable.tsx';
-import { PythonCodeViewer } from './components/PythonCodeViewer.tsx';
-import { VideoUploader } from './components/VideoUploader.tsx';
-import { LiveStreamAnalyzer } from './components/LiveStreamAnalyzer.tsx';
+// Lazy-load کامپوننت‌های سنگین که فقط در تب‌های خاص استفاده می‌شوند
+// این کار باعث می‌شود صفحه نخست سریع‌تر بارگذاری شود (فقط کد لازم دانلود می‌شود)
+const PythonCodeViewer = React.lazy(() => import('./components/PythonCodeViewer.tsx').then(m => ({ default: m.PythonCodeViewer })));
+const VideoUploader = React.lazy(() => import('./components/VideoUploader.tsx').then(m => ({ default: m.VideoUploader })));
+const LiveStreamAnalyzer = React.lazy(() => import('./components/LiveStreamAnalyzer.tsx').then(m => ({ default: m.LiveStreamAnalyzer })));
 import { BottomPlateTicker } from './components/BottomPlateTicker.tsx';
-import { DEFAULT_VERIFIED_PLATES } from './data/defaultPlates.ts';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'video' | 'upload' | 'live' | 'database' | 'code'>('live');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
-  const [plates, setPlates] = useState<PlateRecord[]>(DEFAULT_VERIFIED_PLATES as unknown as PlateRecord[]);
-  const [selectedPlate, setSelectedPlate] = useState<PlateRecord | null>(DEFAULT_VERIFIED_PLATES[0] as unknown as PlateRecord);
+  // شروع با لیست خالی — داده‌ها از دیتابیس واقعی بارگذاری می‌شوند
+  const [plates, setPlates] = useState<PlateRecord[]>([]);
+  const [selectedPlate, setSelectedPlate] = useState<PlateRecord | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [notification, setNotification] = useState<string | null>(null);
@@ -72,31 +74,37 @@ export default function App() {
     }
   }, [theme]);
 
-  // دریافت پلاک‌ها از API سرور
-  const fetchPlates = async () => {
+  // دریافت پلاک‌ها از API سرور — با useCallback برای جلوگیری از re-renderهای اضافی
+  const fetchPlates = useCallback(async () => {
     try {
       setIsLoading(true);
       const res = await fetch('/api/plates');
       const data = await res.json();
-      if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+      if (data.success && Array.isArray(data.data)) {
         setPlates(data.data);
-        if (!selectedPlate) {
-          setSelectedPlate(data.data[0]);
+        // اگر پلاک انتخاب‌شده دیگر وجود ندارد، اولین پلاک را انتخاب کن
+        if (data.data.length > 0) {
+          setSelectedPlate((prev) => {
+            if (prev && data.data.some((p: PlateRecord) => p.id === prev.id)) return prev;
+            return data.data[0];
+          });
+        } else {
+          setSelectedPlate(null);
         }
       } else {
-        setPlates(DEFAULT_VERIFIED_PLATES as unknown as PlateRecord[]);
+        setPlates([]);
       }
     } catch (err) {
-      console.warn('استفاده از داده‌های پلاک پیش‌فرض:', err);
-      setPlates(DEFAULT_VERIFIED_PLATES as unknown as PlateRecord[]);
+      console.warn('خطا در دریافت پلاک‌ها:', err);
+      setPlates([]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchPlates();
-  }, []);
+  }, [fetchPlates]);
 
   // اجرای تحلیل پایتون روی ویدیوی جاری
   const handleRunDetection = async () => {
@@ -140,24 +148,50 @@ export default function App() {
   };
 
   // ثبت دستی پلاک برای آزمون دیتابیس
-  const handleAddPlate = async (plateData: any) => {
-    try {
-      const res = await fetch('/api/plates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(plateData),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setNotification('✓ پلاک جدید با موفقیت توسط پایتون در SQLite ذخیره شد.');
-        await fetchPlates();
-      }
-    } catch (err: any) {
-      alert(`خطا: ${err.message}`);
-    } finally {
-      setTimeout(() => setNotification(null), 4000);
+  const handleAddPlate = useCallback(async (plateData: any) => {
+    const res = await fetch('/api/plates', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(plateData),
+    });
+    const data = await res.json();
+    if (!data.success) {
+      throw new Error(data.error || 'خطا در ثبت پلاک');
     }
-  };
+    setNotification('✓ پلاک جدید با موفقیت در SQLite ذخیره شد.');
+    setTimeout(() => setNotification(null), 4000);
+    await fetchPlates();
+  }, [fetchPlates]);
+
+  // ویرایش پلاک موجود
+  const handleUpdatePlate = useCallback(async (id: number, plateData: any) => {
+    const res = await fetch(`/api/plates/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(plateData),
+    });
+    const data = await res.json();
+    if (!data.success) {
+      throw new Error(data.error || 'خطا در ویرایش پلاک');
+    }
+    setNotification('✓ پلاک با موفقیت به‌روزرسانی شد.');
+    setTimeout(() => setNotification(null), 4000);
+    await fetchPlates();
+  }, [fetchPlates]);
+
+  // حذف پلاک
+  const handleDeletePlate = useCallback(async (id: number) => {
+    const res = await fetch(`/api/plates/${id}`, {
+      method: 'DELETE',
+    });
+    const data = await res.json();
+    if (!data.success) {
+      throw new Error(data.error || 'خطا در حذف پلاک');
+    }
+    setNotification('✓ پلاک از دیتابیس حذف شد.');
+    setTimeout(() => setNotification(null), 4000);
+    await fetchPlates();
+  }, [fetchPlates]);
 
   // کنترل ویدیو
   const togglePlay = () => {
@@ -390,6 +424,7 @@ export default function App() {
         {/* تب ۱: تحلیل دوربین‌های پخش زنده اینترنتی (پیش‌فرض) */}
         {activeTab === 'live' && (
           <div className="space-y-6">
+            <React.Suspense fallback={<div className="p-8 text-center text-zinc-500 text-sm">در حال بارگذاری تحلیلگر زنده...</div>}>
             <LiveStreamAnalyzer
               onNewPlateDetected={(p) => {
                 setPlates((prev) => {
@@ -406,6 +441,7 @@ export default function App() {
               onRefreshPlates={fetchPlates}
               theme={theme}
             />
+            </React.Suspense>
           </div>
         )}
 
@@ -815,11 +851,13 @@ export default function App() {
         {/* تب ۳: آپلود ویدیوی جدید */}
         {activeTab === 'upload' && (
           <div className="max-w-4xl mx-auto w-full space-y-6">
+            <React.Suspense fallback={<div className="p-8 text-center text-zinc-500 text-sm">در حال بارگذاری آپلودکننده...</div>}>
             <VideoUploader
               onVideoUploaded={handleVideoUploaded}
               onRefreshPlates={fetchPlates}
               currentVideoUrl={currentVideoUrl}
             />
+            </React.Suspense>
           </div>
         )}
 
@@ -856,6 +894,8 @@ export default function App() {
               }}
               onRefresh={fetchPlates}
               onAddPlate={handleAddPlate}
+              onUpdatePlate={handleUpdatePlate}
+              onDeletePlate={handleDeletePlate}
               selectedPlateId={selectedPlate?.id}
             />
           </div>
@@ -864,7 +904,9 @@ export default function App() {
         {/* تب ۵: کدها و تست خودکار پایتون */}
         {activeTab === 'code' && (
           <div className="space-y-4">
+            <React.Suspense fallback={<div className="p-8 text-center text-zinc-500 text-sm">در حال بارگذاری نمایشگر کد...</div>}>
             <PythonCodeViewer />
+            </React.Suspense>
           </div>
         )}
       </main>

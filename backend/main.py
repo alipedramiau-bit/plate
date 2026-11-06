@@ -81,6 +81,14 @@ class ManualPlateRequest(BaseModel):
     vehicle_type: Optional[str] = "سواری"
     notes: Optional[str] = "ثبت دستی از طریق API"
 
+class UpdatePlateRequest(BaseModel):
+    part_two_digits: Optional[str] = None
+    letter: Optional[str] = None
+    part_three_digits: Optional[str] = None
+    province_code: Optional[str] = None
+    vehicle_type: Optional[str] = None
+    notes: Optional[str] = None
+
 class RunDetectionRequest(BaseModel):
     videoPath: Optional[str] = None
 
@@ -240,11 +248,53 @@ def add_manual_plate(payload: ManualPlateRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# 9. اجرای تست‌های خودکار
+# 8b. ویرایش پلاک موجود
+@app.put("/api/plates/{plate_id}")
+def update_plate(plate_id: int, payload: UpdatePlateRequest):
+    try:
+        # ساختن dict فقط از فیلدهای ارسال‌شده (non-null)
+        update_data = {k: v for k, v in payload.dict().items() if v is not None}
+        if not update_data:
+            raise HTTPException(status_code=400, detail="هیچ فیلدی برای به‌روزرسانی ارسال نشده است.")
+        ok = db.update_plate(plate_id, update_data)
+        if not ok:
+            raise HTTPException(status_code=404, detail="پلاک با این شناسه یافت نشد.")
+        return {"success": True, "id": plate_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# 8c. حذف پلاک
+@app.delete("/api/plates/{plate_id}")
+def delete_plate(plate_id: int):
+    try:
+        ok = db.delete_plate(plate_id)
+        if not ok:
+            raise HTTPException(status_code=404, detail="پلاک با این شناسه یافت نشد.")
+        return {"success": True, "id": plate_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# 8d. اجرای تست‌ها — استفاده از `python` به‌جای `python3` برای سازگاری با ویندوز
 @app.post("/api/run-tests")
 def run_tests():
     try:
-        proc = subprocess.run(["python3", os.path.join(BASE_DIR, "test_anpr.py")],
+        # در ویندوز دستور `python` استاندارد است (نه `python3`)
+        # ابتدا python را امتحان می‌کنیم، در صورت شکست python3
+        cmd = None
+        for c in ("python", "python3", "py"):
+            try:
+                subprocess.run([c, "--version"], capture_output=True, check=True)
+                cmd = c
+                break
+            except (FileNotFoundError, subprocess.CalledProcessError):
+                continue
+        if not cmd:
+            raise RuntimeError("هیچ دستور پایتونی در PATH یافت نشد.")
+        proc = subprocess.run([cmd, os.path.join(BASE_DIR, "test_anpr.py")],
                               capture_output=True, text=True)
         return {
             "success": proc.returncode == 0,

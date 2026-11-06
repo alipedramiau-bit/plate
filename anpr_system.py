@@ -463,6 +463,72 @@ class LicensePlateDatabase:
             cursor.execute("DELETE FROM detected_plates")
             conn.commit()
 
+    def update_plate(self, plate_id: int, data: dict) -> bool:
+        """به‌روزرسانی یک رکورد پلاک بر اساس شناسه.
+        فیلدهای قابل ویرایش: part_two_digits, letter, part_three_digits,
+        province_code, vehicle_type, notes.
+        پلاک‌های full_fa / full_en / province_name به‌صورت خودکار بازمحاسبه می‌شوند.
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id FROM detected_plates WHERE id = ?", (plate_id,))
+            existing = cursor.fetchone()
+            if not existing:
+                return False
+
+            part1 = to_english_digits(str(data.get("part_two_digits", "")).strip())
+            letter = normalize_persian_letter(str(data.get("letter", "")).strip())
+            part2 = to_english_digits(str(data.get("part_three_digits", "")).strip())
+            prov_code = to_english_digits(str(data.get("province_code", "")).strip())
+            vtype = data.get("vehicle_type", "سواری") or "سواری"
+            notes = data.get("notes")
+
+            # بازمحاسبه فیلدهای مشتق‌شده
+            if vtype == "موتورسیکلت":
+                plate_fa = f"{to_persian_digits(part1)} / {to_persian_digits(part2)}"
+                plate_en = f"{part1}-{part2}"
+                prov_name = "پلاک ملی موتور"
+            else:
+                plate_fa = f"{to_persian_digits(part1)} {letter} {to_persian_digits(part2)} - ایران {to_persian_digits(prov_code)}"
+                plate_en = f"{part1} {letter} {part2} Iran {prov_code}"
+                prov_name = PROVINCE_CODES.get(prov_code, "نامشخص / عمومی")
+
+            if notes is not None:
+                cursor.execute("""
+                    UPDATE detected_plates
+                    SET part_two_digits = ?, letter = ?, part_three_digits = ?,
+                        province_code = ?, province_name = ?, vehicle_type = ?,
+                        plate_full_fa = ?, plate_full_en = ?, notes = ?,
+                        last_seen = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                """, (part1, letter, part2, prov_code, prov_name, vtype,
+                      plate_fa, plate_en, notes, plate_id))
+            else:
+                cursor.execute("""
+                    UPDATE detected_plates
+                    SET part_two_digits = ?, letter = ?, part_three_digits = ?,
+                        province_code = ?, province_name = ?, vehicle_type = ?,
+                        plate_full_fa = ?, plate_full_en = ?,
+                        last_seen = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                """, (part1, letter, part2, prov_code, prov_name, vtype,
+                      plate_fa, plate_en, plate_id))
+            conn.commit()
+            return cursor.rowcount > 0
+
+    def delete_plate(self, plate_id: int) -> bool:
+        """حذف یک رکورد پلاک بر اساس شناسه (و لاگ‌های مرتبط با آن)."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id FROM detected_plates WHERE id = ?", (plate_id,))
+            existing = cursor.fetchone()
+            if not existing:
+                return False
+            cursor.execute("DELETE FROM detection_logs WHERE plate_id = ?", (plate_id,))
+            cursor.execute("DELETE FROM detected_plates WHERE id = ?", (plate_id,))
+            conn.commit()
+            return True
+
 
 class VideoPlateDetector:
     """پردازشگر فریم‌ها، تشخیص هوشمند و استخراج پلاک‌های خودرو و استریم‌های زنده"""
