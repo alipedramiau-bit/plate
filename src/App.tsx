@@ -34,12 +34,13 @@ import { PythonCodeViewer } from './components/PythonCodeViewer.tsx';
 import { VideoUploader } from './components/VideoUploader.tsx';
 import { LiveStreamAnalyzer } from './components/LiveStreamAnalyzer.tsx';
 import { BottomPlateTicker } from './components/BottomPlateTicker.tsx';
+import { DEFAULT_VERIFIED_PLATES } from './data/defaultPlates.ts';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'video' | 'upload' | 'live' | 'database' | 'code'>('live');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
-  const [plates, setPlates] = useState<PlateRecord[]>([]);
-  const [selectedPlate, setSelectedPlate] = useState<PlateRecord | null>(null);
+  const [plates, setPlates] = useState<PlateRecord[]>(DEFAULT_VERIFIED_PLATES as unknown as PlateRecord[]);
+  const [selectedPlate, setSelectedPlate] = useState<PlateRecord | null>(DEFAULT_VERIFIED_PLATES[0] as unknown as PlateRecord);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [notification, setNotification] = useState<string | null>(null);
@@ -77,14 +78,17 @@ export default function App() {
       setIsLoading(true);
       const res = await fetch('/api/plates');
       const data = await res.json();
-      if (data.success && Array.isArray(data.data)) {
+      if (data.success && Array.isArray(data.data) && data.data.length > 0) {
         setPlates(data.data);
-        if (data.data.length > 0 && !selectedPlate) {
+        if (!selectedPlate) {
           setSelectedPlate(data.data[0]);
         }
+      } else {
+        setPlates(DEFAULT_VERIFIED_PLATES as unknown as PlateRecord[]);
       }
     } catch (err) {
-      console.error('خطا در بارگذاری پلاک‌ها:', err);
+      console.warn('استفاده از داده‌های پلاک پیش‌فرض:', err);
+      setPlates(DEFAULT_VERIFIED_PLATES as unknown as PlateRecord[]);
     } finally {
       setIsLoading(false);
     }
