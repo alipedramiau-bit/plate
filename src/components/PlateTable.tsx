@@ -1,9 +1,6 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { PersianPlate, toPersianDigits } from './PersianPlate.tsx';
-import {
-  Search, Filter, Plus, Clock, MapPin, Eye, Car, CheckCircle2, RefreshCw,
-  FileSpreadsheet, FileJson, Pencil, Trash2, X, AlertTriangle,
-} from 'lucide-react';
+import { Search, Filter, Plus, Clock, MapPin, Eye, Car, CheckCircle2, RefreshCw, FileSpreadsheet, FileJson } from 'lucide-react';
 
 export interface PlateRecord {
   id: number;
@@ -24,6 +21,7 @@ export interface PlateRecord {
   frame_path?: string;
   crop_path?: string;
   notes?: string;
+  box_pct?: { left: number; top: number; width: number; height: number };
 }
 
 interface PlateTableProps {
@@ -31,104 +29,44 @@ interface PlateTableProps {
   onSelectPlate: (plate: PlateRecord) => void;
   onRefresh: () => void;
   onAddPlate: (plate: any) => Promise<void>;
-  onUpdatePlate: (id: number, plate: any) => Promise<void>;
-  onDeletePlate: (id: number) => Promise<void>;
   selectedPlateId?: number;
 }
-
-const PERSIAN_LETTERS = ['الف', 'ب', 'پ', 'ت', 'ث', 'ج', 'چ', 'ح', 'خ', 'د',
-  'ذ', 'ر', 'ز', 'ژ', 'س', 'ش', 'ص', 'ض', 'ط', 'ظ', 'ع', 'غ', 'ف', 'ق',
-  'ک', 'گ', 'ل', 'م', 'ن', 'و', 'ه', 'ی'];
 
 export const PlateTable: React.FC<PlateTableProps> = ({
   plates,
   onSelectPlate,
   onRefresh,
   onAddPlate,
-  onUpdatePlate,
-  onDeletePlate,
   selectedPlateId,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [editingPlate, setEditingPlate] = useState<PlateRecord | null>(null);
-  const [deletingPlate, setDeletingPlate] = useState<PlateRecord | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   // فرم ثبت دستی
-  const emptyPlate = {
+  const [newPlate, setNewPlate] = useState({
     part_two_digits: '38',
     letter: 'ب',
     part_three_digits: '614',
     province_code: '21',
     vehicle_type: 'سواری پژو پارس',
     notes: 'تست درج دستی از طریق پنل کاربری برای آزمون دیتابیس',
-  };
-  const [newPlate, setNewPlate] = useState(emptyPlate);
-  const [editForm, setEditForm] = useState(emptyPlate);
+  });
 
-  const handleCreatePlate = useCallback(async (e: React.FormEvent) => {
+  const handleCreatePlate = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setError(null);
     try {
       await onAddPlate(newPlate);
       setShowAddModal(false);
-      setNewPlate(emptyPlate);
       onRefresh();
-    } catch (err: any) {
-      setError(err.message || 'خطا در ثبت پلاک');
+    } catch (err) {
+      console.error(err);
     } finally {
       setIsSubmitting(false);
     }
-  }, [newPlate, onAddPlate, onRefresh]);
-
-  const handleEditClick = useCallback((plate: PlateRecord) => {
-    setEditingPlate(plate);
-    setEditForm({
-      part_two_digits: plate.part_two_digits || '',
-      letter: plate.letter || '',
-      part_three_digits: plate.part_three_digits || '',
-      province_code: plate.province_code || '',
-      vehicle_type: plate.vehicle_type || '',
-      notes: plate.notes || '',
-    });
-    setError(null);
-  }, []);
-
-  const handleUpdatePlate = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingPlate) return;
-    setIsSubmitting(true);
-    setError(null);
-    try {
-      await onUpdatePlate(editingPlate.id, editForm);
-      setEditingPlate(null);
-      onRefresh();
-    } catch (err: any) {
-      setError(err.message || 'خطا در ویرایش پلاک');
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [editingPlate, editForm, onUpdatePlate, onRefresh]);
-
-  const handleDeleteConfirm = useCallback(async () => {
-    if (!deletingPlate) return;
-    setIsDeleting(true);
-    setError(null);
-    try {
-      await onDeletePlate(deletingPlate.id);
-      setDeletingPlate(null);
-      onRefresh();
-    } catch (err: any) {
-      setError(err.message || 'خطا در حذف پلاک');
-    } finally {
-      setIsDeleting(false);
-    }
-  }, [deletingPlate, onDeletePlate, onRefresh]);
+  };
 
   const filteredPlates = plates.filter((plate) => {
     const matchesSearch =
@@ -232,19 +170,6 @@ export const PlateTable: React.FC<PlateTableProps> = ({
         </div>
       </div>
 
-      {/* پیام خطا */}
-      {error && (
-        <div className="m-3 p-3 rounded-lg border border-red-500/30 bg-red-500/10 text-xs text-red-300 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4" />
-            <span>{error}</span>
-          </div>
-          <button onClick={() => setError(null)} className="text-red-300 hover:text-white">
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      )}
-
       {/* محتوای جدول */}
       <div className="overflow-x-auto flex-1 max-h-[500px]">
         <table className="w-full text-right text-xs">
@@ -261,16 +186,14 @@ export const PlateTable: React.FC<PlateTableProps> = ({
               <th className="py-2.5 px-3 text-center">زمان ویدیو</th>
               <th className="py-2.5 px-3 text-center">دقت</th>
               <th className="py-2.5 px-3 text-center">تعداد رویت</th>
-              <th className="py-2.5 px-3 text-center whitespace-nowrap">عملیات (ثبت/ویرایش/حذف)</th>
+              <th className="py-2.5 px-3 text-center">عملیات</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800/60 text-zinc-300">
             {filteredPlates.length === 0 ? (
               <tr>
                 <td colSpan={12} className="py-8 text-center text-zinc-500 text-sm">
-                  {plates.length === 0
-                    ? 'هنوز پلاکی در دیتابیس ثبت نشده است. با پردازش ویدیو یا ثبت دستی، پلاک جدید اضافه کنید.'
-                    : 'موردی با این مشخصات یافت نشد.'}
+                  موردی با این مشخصات یافت نشد.
                 </td>
               </tr>
             ) : (
@@ -349,41 +272,16 @@ export const PlateTable: React.FC<PlateTableProps> = ({
                       </span>
                     </td>
                     <td className="py-2.5 px-3 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        {/* مشاهده جزئیات */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onSelectPlate(plate);
-                          }}
-                          className="p-1.5 text-zinc-400 hover:text-emerald-400 hover:bg-zinc-700/50 rounded transition-colors"
-                          title="مشاهده جزئیات"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                        </button>
-                        {/* ویرایش */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEditClick(plate);
-                          }}
-                          className="p-1.5 text-zinc-400 hover:text-amber-400 hover:bg-amber-500/10 rounded transition-colors border border-transparent hover:border-amber-500/30"
-                          title="ویرایش پلاک"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                        {/* حذف */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeletingPlate(plate);
-                          }}
-                          className="p-1.5 text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors border border-transparent hover:border-red-500/30"
-                          title="حذف پلاک"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectPlate(plate);
+                        }}
+                        className="p-1 text-zinc-400 hover:text-emerald-400 hover:bg-zinc-700/50 rounded transition-colors"
+                        title="مشاهده جزئیات فریم و پلاک"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
                     </td>
                   </tr>
                 );
@@ -393,248 +291,126 @@ export const PlateTable: React.FC<PlateTableProps> = ({
         </table>
       </div>
 
-      {/* مدال ثبت دستی پلاک */}
+      {/* مدال ثبت دستی پلاک برای راستی‌آزمایی دیتابیس */}
       {showAddModal && (
-        <PlateFormModal
-          title="افزودن پلاک جدید به دیتابیس SQLite"
-          subtitle="با این فرم می‌توانید انتقال مستقیم اعداد و حروف پلاک به دیتابیس را تست و اعتبارسنجی نمایید."
-          form={newPlate}
-          onChange={setNewPlate}
-          onSubmit={handleCreatePlate}
-          onClose={() => setShowAddModal(false)}
-          isSubmitting={isSubmitting}
-          submitLabel="ثبت در SQLite"
-        />
-      )}
-
-      {/* مدال ویرایش پلاک */}
-      {editingPlate && (
-        <PlateFormModal
-          title={`ویرایش پلاک #${toPersianDigits(editingPlate.id)}`}
-          subtitle="با ویرایش این فرم، فیلدهای پلاک در دیتابیس به‌روزرسانی می‌شوند."
-          form={editForm}
-          onChange={setEditForm}
-          onSubmit={handleUpdatePlate}
-          onClose={() => setEditingPlate(null)}
-          isSubmitting={isSubmitting}
-          submitLabel="ذخیره تغییرات"
-        />
-      )}
-
-      {/* مدال تأیید حذف */}
-      {deletingPlate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="bg-zinc-900 border border-red-700/50 rounded-xl p-6 max-w-md w-full shadow-2xl">
-            <div className="flex items-start gap-3 mb-4">
-              <div className="p-2.5 rounded-lg bg-red-500/15 border border-red-500/30 shrink-0">
-                <AlertTriangle className="w-5 h-5 text-red-400" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-base font-bold text-zinc-100 mb-1">حذف پلاک از دیتابیس</h3>
-                <p className="text-xs text-zinc-400">
-                  آیا مطمئن هستید که می‌خواهید این پلاک را به‌طور کامل از دیتابیس SQLite حذف کنید؟ این عملیات قابل بازگشت نیست.
-                </p>
-              </div>
-            </div>
+          <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 max-w-md w-full shadow-2xl">
+            <h3 className="text-base font-bold text-zinc-100 mb-1 flex items-center gap-2">
+              <Plus className="w-4 h-4 text-emerald-400" />
+              <span>افزودن پلاک جدید به دیتابیس SQLite</span>
+            </h3>
+            <p className="text-xs text-zinc-400 mb-4">
+              با این فرم می‌توانید انتقال مستقیم اعداد و حروف پلاک به دیتابیس را تست و اعتبارسنجی نمایید.
+            </p>
 
-            <div className="p-3 bg-zinc-950/70 border border-zinc-800 rounded-lg flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <PersianPlate
-                  partTwoDigits={deletingPlate.part_two_digits}
-                  letter={deletingPlate.letter}
-                  partThreeDigits={deletingPlate.part_three_digits}
-                  provinceCode={deletingPlate.province_code}
-                  vehicleType={deletingPlate.vehicle_type}
-                  size="sm"
-                />
-                <div className="text-xs">
-                  <div className="font-bold text-zinc-200">{deletingPlate.vehicle_type}</div>
-                  <div className="text-zinc-500">{deletingPlate.province_name}</div>
+            <form onSubmit={handleCreatePlate} className="space-y-3 text-xs">
+              <div className="grid grid-cols-4 gap-2">
+                <div>
+                  <label className="block text-zinc-400 mb-1 font-medium">۲ رقم سمت چپ</label>
+                  <input
+                    type="text"
+                    maxLength={2}
+                    required
+                    value={newPlate.part_two_digits}
+                    onChange={(e) => setNewPlate({ ...newPlate, part_two_digits: e.target.value })}
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-center text-sm font-bold text-amber-300 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    placeholder="38"
+                  />
+                </div>
+                <div>
+                  <label className="block text-zinc-400 mb-1 font-medium">حرف پلاک</label>
+                  <input
+                    type="text"
+                    maxLength={1}
+                    required
+                    value={newPlate.letter}
+                    onChange={(e) => setNewPlate({ ...newPlate, letter: e.target.value })}
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-center text-sm font-bold text-blue-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    placeholder="ب"
+                  />
+                </div>
+                <div>
+                  <label className="block text-zinc-400 mb-1 font-medium">۳ رقم وسط</label>
+                  <input
+                    type="text"
+                    maxLength={3}
+                    required
+                    value={newPlate.part_three_digits}
+                    onChange={(e) => setNewPlate({ ...newPlate, part_three_digits: e.target.value })}
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-center text-sm font-bold text-emerald-300 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    placeholder="614"
+                  />
+                </div>
+                <div>
+                  <label className="block text-zinc-400 mb-1 font-medium">کد ۲ رقمی استان</label>
+                  <input
+                    type="text"
+                    maxLength={2}
+                    required
+                    value={newPlate.province_code}
+                    onChange={(e) => setNewPlate({ ...newPlate, province_code: e.target.value })}
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-center text-sm font-bold text-cyan-300 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    placeholder="21"
+                  />
                 </div>
               </div>
-              <span className="text-xs font-mono text-zinc-500">
-                #{toPersianDigits(deletingPlate.id)}
-              </span>
-            </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-zinc-800">
-              <button
-                type="button"
-                onClick={() => setDeletingPlate(null)}
-                disabled={isDeleting}
-                className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded transition-colors text-xs font-medium"
-              >
-                انصراف
-              </button>
-              <button
-                onClick={handleDeleteConfirm}
-                disabled={isDeleting}
-                className="px-4 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded font-medium transition-colors flex items-center gap-1.5 text-xs"
-              >
-                {isDeleting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                <span>حذف قطعی</span>
-              </button>
-            </div>
+              {/* پیش‌نمایش زنده گرافیکی پلاک */}
+              <div className="p-3 bg-zinc-950/70 border border-zinc-800 rounded-lg flex flex-col items-center justify-center gap-1.5 my-2">
+                <span className="text-[10px] text-zinc-400">پیش‌نمایش پلاک تولیدی:</span>
+                <PersianPlate
+                  partTwoDigits={newPlate.part_two_digits}
+                  letter={newPlate.letter}
+                  partThreeDigits={newPlate.part_three_digits}
+                  provinceCode={newPlate.province_code}
+                  vehicleType={newPlate.vehicle_type}
+                  size="md"
+                />
+              </div>
+
+              <div>
+                <label className="block text-zinc-400 mb-1 font-medium">مدل یا نوع خودرو</label>
+                <input
+                  type="text"
+                  value={newPlate.vehicle_type}
+                  onChange={(e) => setNewPlate({ ...newPlate, vehicle_type: e.target.value })}
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-zinc-100 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  placeholder="مثال: سواری پژو ۲۰۶"
+                />
+              </div>
+
+              <div>
+                <label className="block text-zinc-400 mb-1 font-medium">یادداشت / توضیحات</label>
+                <textarea
+                  rows={2}
+                  value={newPlate.notes}
+                  onChange={(e) => setNewPlate({ ...newPlate, notes: e.target.value })}
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-zinc-100 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  placeholder="توضیحات تست..."
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded transition-colors"
+                >
+                  انصراف
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-medium transition-colors flex items-center gap-1.5"
+                >
+                  {isSubmitting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                  <span>ثبت در SQLite</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
-    </div>
-  );
-};
-
-// ----------------------------------------------------------------------
-// فرم مشترک برای مدال ثبت و ویرایش پلاک
-// ----------------------------------------------------------------------
-interface PlateFormModalProps {
-  title: string;
-  subtitle: string;
-  form: {
-    part_two_digits: string;
-    letter: string;
-    part_three_digits: string;
-    province_code: string;
-    vehicle_type: string;
-    notes: string;
-  };
-  onChange: (form: any) => void;
-  onSubmit: (e: React.FormEvent) => void;
-  onClose: () => void;
-  isSubmitting: boolean;
-  submitLabel: string;
-}
-
-const PlateFormModal: React.FC<PlateFormModalProps> = ({
-  title, subtitle, form, onChange, onSubmit, onClose, isSubmitting, submitLabel,
-}) => {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 max-w-md w-full shadow-2xl">
-        <div className="flex items-start justify-between mb-1">
-          <h3 className="text-base font-bold text-zinc-100 flex items-center gap-2">
-            <Plus className="w-4 h-4 text-emerald-400" />
-            <span>{title}</span>
-          </h3>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-zinc-500 hover:text-zinc-200"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-        <p className="text-xs text-zinc-400 mb-4">{subtitle}</p>
-
-        <form onSubmit={onSubmit} className="space-y-3 text-xs">
-          <div className="grid grid-cols-4 gap-2">
-            <div>
-              <label className="block text-zinc-400 mb-1 font-medium">۲ رقم سمت چپ</label>
-              <input
-                type="text"
-                maxLength={3}
-                required
-                value={form.part_two_digits}
-                onChange={(e) => onChange({ ...form, part_two_digits: e.target.value })}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-center text-sm font-bold text-amber-300 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                placeholder="38"
-              />
-            </div>
-            <div>
-              <label className="block text-zinc-400 mb-1 font-medium">حرف پلاک</label>
-              <input
-                type="text"
-                maxLength={2}
-                required
-                value={form.letter}
-                onChange={(e) => onChange({ ...form, letter: e.target.value })}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-center text-sm font-bold text-blue-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                placeholder="ب"
-                list="persian-letters"
-              />
-              <datalist id="persian-letters">
-                {PERSIAN_LETTERS.map((l) => <option key={l} value={l} />)}
-              </datalist>
-            </div>
-            <div>
-              <label className="block text-zinc-400 mb-1 font-medium">۳ رقم وسط</label>
-              <input
-                type="text"
-                maxLength={5}
-                required
-                value={form.part_three_digits}
-                onChange={(e) => onChange({ ...form, part_three_digits: e.target.value })}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-center text-sm font-bold text-emerald-300 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                placeholder="614"
-              />
-            </div>
-            <div>
-              <label className="block text-zinc-400 mb-1 font-medium">کد ۲ رقمی استان</label>
-              <input
-                type="text"
-                maxLength={2}
-                required
-                value={form.province_code}
-                onChange={(e) => onChange({ ...form, province_code: e.target.value })}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-center text-sm font-bold text-cyan-300 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                placeholder="21"
-              />
-            </div>
-          </div>
-
-          {/* پیش‌نمایش زنده گرافیکی پلاک */}
-          <div className="p-3 bg-zinc-950/70 border border-zinc-800 rounded-lg flex flex-col items-center justify-center gap-1.5 my-2">
-            <span className="text-[10px] text-zinc-400">پیش‌نمایش پلاک:</span>
-            <PersianPlate
-              partTwoDigits={form.part_two_digits}
-              letter={form.letter}
-              partThreeDigits={form.part_three_digits}
-              provinceCode={form.province_code}
-              vehicleType={form.vehicle_type}
-              size="md"
-            />
-          </div>
-
-          <div>
-            <label className="block text-zinc-400 mb-1 font-medium">مدل یا نوع خودرو</label>
-            <input
-              type="text"
-              value={form.vehicle_type}
-              onChange={(e) => onChange({ ...form, vehicle_type: e.target.value })}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-zinc-100 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-              placeholder="مثال: سواری پژو ۲۰۶"
-            />
-          </div>
-
-          <div>
-            <label className="block text-zinc-400 mb-1 font-medium">یادداشت / توضیحات</label>
-            <textarea
-              rows={2}
-              value={form.notes}
-              onChange={(e) => onChange({ ...form, notes: e.target.value })}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-zinc-100 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-              placeholder="توضیحات..."
-            />
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2 border-t border-zinc-800">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded transition-colors text-xs font-medium"
-            >
-              انصراف
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-medium transition-colors flex items-center gap-1.5 text-xs"
-            >
-              {isSubmitting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-              <span>{submitLabel}</span>
-            </button>
-          </div>
-        </form>
-      </div>
     </div>
   );
 };

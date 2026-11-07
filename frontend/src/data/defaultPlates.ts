@@ -21,6 +21,26 @@ export interface DefaultPlateItem {
 
 export const DEFAULT_VERIFIED_PLATES: DefaultPlateItem[] = [
   {
+    id: 116,
+    plate_full_fa: '۷۲ ن ۸۶۲ - ایران ۹۹',
+    plate_full_en: '72 ن 862 Iran 99',
+    part_two_digits: '72',
+    letter: 'ن',
+    part_three_digits: '862',
+    province_code: '99',
+    province_name: 'البرز (کرج) / پلاک تاریخی',
+    vehicle_type: 'شورولت / کادیلاک کلاسیک صورتی کروک',
+    confidence: 0.99,
+    timestamp_formatted: '00:01',
+    video_timestamp_sec: 1.0,
+    crop_path: '/crops/plate_cadillac_pink_01s.jpg',
+    frame_path: '/frames/frame_cadillac_01s.jpg',
+    detection_count: 1,
+    source_type: 'uploaded_video',
+    notes: 'پلاک تاریخی خودروی کلاسیک آمریکایی در میدان آزادی تهران (کلیپ ریلز)',
+    box_pct: { left: 31.9, top: 78.1, width: 36.1, height: 7.0 },
+  },
+  {
     id: 115,
     plate_full_fa: '۸۷ ج ۷۶۸ - ایران ۵۵',
     plate_full_en: '87 ج 768 Iran 55',
